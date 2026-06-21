@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Plus, Edit, Trash2, Search, X, Music, Clock, TrendingUp, Star, Languages, Info } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Music, Clock, TrendingUp, Star, Languages, Info, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -49,6 +49,42 @@ const Loader = () => (
         </div>
     </div>
 );
+
+// ─── Helper: build absolute image URL ───
+const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
+// ─── Get a soft pastel color based on category name ───
+const getCategoryColor = (categoryName) => {
+    if (!categoryName) return 'from-amber-100 to-orange-200';
+    const name = categoryName.toLowerCase();
+    if (name.includes('shiva') || name.includes('mahadev')) return 'from-indigo-100 to-purple-200';
+    if (name.includes('ganesh')) return 'from-red-100 to-orange-200';
+    if (name.includes('durga')) return 'from-pink-100 to-rose-200';
+    if (name.includes('vishnu')) return 'from-teal-100 to-cyan-200';
+    if (name.includes('lakshmi')) return 'from-yellow-100 to-amber-200';
+    if (name.includes('saraswati')) return 'from-blue-100 to-indigo-200';
+    if (name.includes('hanuman')) return 'from-orange-100 to-red-200';
+    return 'from-amber-100 to-orange-200';
+};
+
+// ─── Get a gradient border color ───
+const getBorderColor = (categoryName) => {
+    if (!categoryName) return 'border-amber-200';
+    const name = categoryName.toLowerCase();
+    if (name.includes('shiva') || name.includes('mahadev')) return 'border-indigo-300';
+    if (name.includes('ganesh')) return 'border-red-300';
+    if (name.includes('durga')) return 'border-pink-300';
+    if (name.includes('vishnu')) return 'border-teal-300';
+    if (name.includes('lakshmi')) return 'border-yellow-300';
+    if (name.includes('saraswati')) return 'border-blue-300';
+    if (name.includes('hanuman')) return 'border-orange-300';
+    return 'border-amber-300';
+};
 
 const EMPTY_FORM = {
     name: '',
@@ -111,7 +147,7 @@ const ManageMantras = () => {
         if (!formData.sanskrit?.trim()) return toast.error('Sanskrit text is required');
         if (!formData.kannada?.trim()) return toast.error('Kannada translation is required');
         if (!formData.marathi?.trim()) return toast.error('Marathi translation is required');
-        if (!formData.tamil?.trim()) return toast.error('Tamil translation is required');
+        if (!formData.tamil?.trim()) return toast.error('Telugu translation is required');
         if (!formData.benefits?.trim()) return toast.error('Benefits are required');
         if (!formData.howToChant?.trim()) return toast.error('How to chant is required');
         if (!formData.bestTime?.trim()) return toast.error('Best time is required');
@@ -303,66 +339,111 @@ const ManageMantras = () => {
                         animate="visible"
                         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                     >
-                        {filteredMantras.map((m, idx) => (
-                            <motion.div key={m._id} variants={cardVariants} whileHover={{ y: -6 }}>
-                                <div className="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-md border border-amber-200/40 hover:shadow-xl transition-all duration-300">
-                                    <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 to-amber-600" />
-                                    
-                                    <div className="p-5">
-                                        <div className="flex items-start justify-between gap-2 mb-3">
-                                            <div className="flex-1">
-                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors line-clamp-1">
-                                                    {m.name}
-                                                </h3>
-                                                <span className="inline-block mt-1.5 px-2.5 py-0.5 text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
-                                                    {getCategoryName(m.category)}
+                        {filteredMantras.map((m, idx) => {
+                            const categoryName = getCategoryName(m.category);
+                            const cat = categoriesList.find(c => c._id === (m.category?._id || m.category));
+                            const catImage = cat?.image ? getImageUrl(cat.image) : null;
+                            const gradientBg = getCategoryColor(categoryName);
+                            const borderColor = getBorderColor(categoryName);
+                            const fallbackIcon = catImage ? null : (categoryName ? categoryName.charAt(0).toUpperCase() : '?');
+
+                            return (
+                                <motion.div key={m._id} variants={cardVariants} whileHover={{ y: -6, transition: { type: 'spring', stiffness: 200 } }}>
+                                    <div className={`group bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 border ${borderColor} hover:border-amber-400/60`}>
+                                        {/* Pastel color accent bar */}
+                                        <div className={`h-1.5 w-full bg-gradient-to-r ${gradientBg}`} />
+
+                                        <div className="p-5">
+                                            <div className="flex items-start gap-3">
+                                                {/* Category Image / Avatar */}
+                                                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-800/40 flex items-center justify-center shadow-inner flex-shrink-0 group-hover:scale-110 transition-transform duration-300 border-2 border-white/50">
+                                                    {catImage ? (
+                                                        <img
+                                                            src={catImage}
+                                                            alt={categoryName}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                e.target.style.display = 'none';
+                                                                const parent = e.target.parentElement;
+                                                                parent.innerHTML = `<span class="text-xl font-bold text-amber-700">${fallbackIcon}</span>`;
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <span className="text-xl font-bold text-amber-700">{fallbackIcon}</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors line-clamp-1">
+                                                        {m.name}
+                                                    </h3>
+                                                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                        <span className="inline-block px-2 py-0.5 text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
+                                                            {categoryName}
+                                                        </span>
+                                                        {m.isFeatured && (
+                                                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+                                                                <Star className="h-3 w-3" /> Featured
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-1.5 flex-shrink-0">
+                                                    <button
+                                                        onClick={() => openForm(m)}
+                                                        className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="h-3.5 w-3.5 text-blue-600" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(m._id)}
+                                                        className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Sanskrit preview */}
+                                            {m.sanskrit && (
+                                                <div className="mt-3 font-devanagari text-sm text-gray-600 dark:text-gray-300 line-clamp-2 bg-amber-50/40 dark:bg-amber-900/10 rounded-xl px-3 py-2 leading-relaxed">
+                                                    {m.sanskrit.slice(0, 120)}
+                                                    {m.sanskrit.length > 120 && '...'}
+                                                </div>
+                                            )}
+
+                                            {/* Benefits preview */}
+                                            {m.benefits && (
+                                                <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm line-clamp-2 leading-relaxed">
+                                                    {m.benefits.slice(0, 100)}
+                                                </p>
+                                            )}
+
+                                            {/* Metadata row */}
+                                            <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700 gap-1">
+                                                <span className="flex items-center gap-1">
+                                                    <Clock className="h-3.5 w-3.5" /> {m.bestTime || 'Any time'}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <TrendingUp className="h-3.5 w-3.5" /> {m.recommendedCount || 108}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    👁 {(m.views || 0).toLocaleString()}
                                                 </span>
                                             </div>
-                                            <div className="flex gap-1.5 flex-shrink-0">
-                                                <button
-                                                    onClick={() => openForm(m)}
-                                                    className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors"
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="h-3.5 w-3.5 text-blue-600" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(m._id)}
-                                                    className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        {m.sanskrit && (
-                                            <p className="font-devanagari text-sm text-gray-600 dark:text-gray-300 line-clamp-2 bg-amber-50/40 dark:bg-amber-900/10 rounded-xl px-3 py-2 mb-3">
-                                                {m.sanskrit.slice(0, 80)}...
-                                            </p>
-                                        )}
-                                        
-                                        <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 leading-relaxed mb-4">
-                                            {m.benefits?.slice(0, 100) || 'No benefits added'}
-                                        </p>
-                                        
-                                        <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-100 dark:border-gray-700">
-                                            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {m.bestTime || 'Any time'}</span>
-                                            <span className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5" /> {m.recommendedCount || 108}</span>
-                                            <span>👁 {(m.views || 0).toLocaleString()}</span>
-                                        </div>
-                                        
-                                        {m.isFeatured && (
+
+                                            {/* Explore action */}
                                             <div className="mt-3 flex justify-end">
-                                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
-                                                    <Star className="h-3 w-3" /> Featured
+                                                <span className="text-amber-600 text-xs font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1">
+                                                    View <ArrowRight className="h-3.5 w-3.5" />
                                                 </span>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            );
+                        })}
                     </motion.div>
                 )}
 
@@ -389,6 +470,7 @@ const ManageMantras = () => {
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                                    {/* ─── Form fields (unchanged) ─── */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                         {field('Mantra Name', 'name', 'text', true, null, 'e.g., Gayatri Mantra')}
                                         <div>
@@ -439,8 +521,8 @@ const ManageMantras = () => {
                                                 <textarea required rows={4} value={formData.marathi} onChange={e => setFormData({ ...formData, marathi: e.target.value })} placeholder="Marathi translation..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-amber-500" />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">தமிழ் (Tamil) <span className="text-red-500">*</span></label>
-                                                <textarea required rows={4} value={formData.tamil} onChange={e => setFormData({ ...formData, tamil: e.target.value })} placeholder="Tamil translation..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-amber-500" />
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">తెలుగు (Telugu) <span className="text-red-500">*</span></label>
+                                                <textarea required rows={4} value={formData.tamil} onChange={e => setFormData({ ...formData, tamil: e.target.value })} placeholder="Telugu translation..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-amber-500" />
                                             </div>
                                         </div>
                                     </div>

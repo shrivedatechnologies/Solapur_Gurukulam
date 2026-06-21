@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Plus, Edit, Trash2, Search, X, BookOpen, Star, Languages, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, BookOpen, Star, Languages, TrendingUp, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -49,6 +49,42 @@ const Loader = () => (
         </div>
     </div>
 );
+
+// ─── Helper: build absolute image URL ───
+const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
+// ─── Get a soft pastel color based on category name ───
+const getCategoryColor = (categoryName) => {
+    if (!categoryName) return 'from-amber-100 to-orange-200';
+    const name = categoryName.toLowerCase();
+    if (name.includes('shiva') || name.includes('mahadev')) return 'from-indigo-100 to-purple-200';
+    if (name.includes('ganesh')) return 'from-red-100 to-orange-200';
+    if (name.includes('durga')) return 'from-pink-100 to-rose-200';
+    if (name.includes('vishnu')) return 'from-teal-100 to-cyan-200';
+    if (name.includes('lakshmi')) return 'from-yellow-100 to-amber-200';
+    if (name.includes('saraswati')) return 'from-blue-100 to-indigo-200';
+    if (name.includes('hanuman')) return 'from-orange-100 to-red-200';
+    return 'from-amber-100 to-orange-200';
+};
+
+// ─── Get a gradient border color ───
+const getBorderColor = (categoryName) => {
+    if (!categoryName) return 'border-amber-200';
+    const name = categoryName.toLowerCase();
+    if (name.includes('shiva') || name.includes('mahadev')) return 'border-indigo-300';
+    if (name.includes('ganesh')) return 'border-red-300';
+    if (name.includes('durga')) return 'border-pink-300';
+    if (name.includes('vishnu')) return 'border-teal-300';
+    if (name.includes('lakshmi')) return 'border-yellow-300';
+    if (name.includes('saraswati')) return 'border-blue-300';
+    if (name.includes('hanuman')) return 'border-orange-300';
+    return 'border-amber-300';
+};
 
 const EMPTY_FORM = {
     name: '',
@@ -107,7 +143,7 @@ const ManageShlokas = () => {
         if (!formData.sanskrit?.trim()) return toast.error('Sanskrit text is required');
         if (!formData.kannada?.trim()) return toast.error('Kannada translation is required');
         if (!formData.marathi?.trim()) return toast.error('Marathi translation is required');
-        if (!formData.tamil?.trim()) return toast.error('Tamil translation is required');
+        if (!formData.tamil?.trim()) return toast.error('Telugu translation is required');
 
         setLoading(true);
         try {
@@ -273,66 +309,108 @@ const ManageShlokas = () => {
                         animate="visible"
                         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
                     >
-                        {filteredShlokas.map((s, idx) => (
-                            <motion.div key={s._id} variants={cardVariants} whileHover={{ y: -4 }}>
-                                <div className="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-md border border-amber-200/40 hover:shadow-xl transition-all duration-300">
-                                    <div className="h-1.5 w-full bg-gradient-to-r from-purple-400 via-amber-400 to-orange-400" />
-                                    
-                                    <div className="p-5">
-                                        <div className="flex items-start justify-between gap-2 mb-3">
-                                            <div className="flex-1">
-                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors line-clamp-1">
-                                                    {s.name}
-                                                </h3>
-                                                <span className="inline-block mt-1.5 px-2.5 py-0.5 text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
-                                                    {getCategoryName(s.category)}
+                        {filteredShlokas.map((s, idx) => {
+                            const categoryName = getCategoryName(s.category);
+                            const cat = categoriesList.find(c => c._id === (s.category?._id || s.category));
+                            const catImage = cat?.image ? getImageUrl(cat.image) : null;
+                            const gradientBg = getCategoryColor(categoryName);
+                            const borderColor = getBorderColor(categoryName);
+                            const fallbackIcon = catImage ? null : (categoryName ? categoryName.charAt(0).toUpperCase() : '?');
+
+                            return (
+                                <motion.div key={s._id} variants={cardVariants} whileHover={{ y: -4, transition: { type: 'spring', stiffness: 200 } }}>
+                                    <div className={`group bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 border ${borderColor} hover:border-amber-400/60`}>
+                                        {/* Pastel color accent bar */}
+                                        <div className={`h-1.5 w-full bg-gradient-to-r ${gradientBg}`} />
+
+                                        <div className="p-5">
+                                            <div className="flex items-start gap-3">
+                                                {/* Category Image / Avatar */}
+                                                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-800/40 flex items-center justify-center shadow-inner flex-shrink-0 group-hover:scale-110 transition-transform duration-300 border-2 border-white/50">
+                                                    {catImage ? (
+                                                        <img
+                                                            src={catImage}
+                                                            alt={categoryName}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                e.target.style.display = 'none';
+                                                                const parent = e.target.parentElement;
+                                                                parent.innerHTML = `<span class="text-xl font-bold text-amber-700">${fallbackIcon}</span>`;
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <span className="text-xl font-bold text-amber-700">{fallbackIcon}</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors line-clamp-1">
+                                                        {s.name}
+                                                    </h3>
+                                                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                        <span className="inline-block px-2 py-0.5 text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
+                                                            {categoryName}
+                                                        </span>
+                                                        {s.isFeatured && (
+                                                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+                                                                <Star className="h-3 w-3" /> Featured
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-1.5 flex-shrink-0">
+                                                    <button
+                                                        onClick={() => openForm(s)}
+                                                        className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="h-3.5 w-3.5 text-blue-600" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(s._id)}
+                                                        className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Sanskrit preview */}
+                                            {s.sanskrit && (
+                                                <div className="mt-3 font-devanagari text-sm text-gray-600 dark:text-gray-300 line-clamp-2 bg-amber-50/40 dark:bg-amber-900/10 rounded-xl px-3 py-2 leading-relaxed">
+                                                    {s.sanskrit.slice(0, 120)}
+                                                    {s.sanskrit.length > 120 && '...'}
+                                                </div>
+                                            )}
+
+                                            {/* Metadata row */}
+                                            <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700 gap-1">
+                                                <span className="flex items-center gap-1">
+                                                    <TrendingUp className="h-3.5 w-3.5" /> Order: #{s.order || 0}
                                                 </span>
+                                                <span className="flex items-center gap-1">
+                                                    <TrendingUp className="h-3.5 w-3.5" /> {(s.views || 0).toLocaleString()}
+                                                </span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {s.kannada && <span className="text-purple-600 font-medium">ಕ</span>}
+                                                    {s.marathi && <span className="text-green-600 font-medium">म</span>}
+                                                    {s.tamil && <span className="text-red-600 font-medium">த</span>}
+                                                    {s.hindi && <span className="text-blue-600 font-medium">ह</span>}
+                                                    {s.english && <span className="text-gray-600 font-medium">EN</span>}
+                                                </div>
                                             </div>
-                                            <div className="flex gap-1.5 flex-shrink-0">
-                                                <button
-                                                    onClick={() => openForm(s)}
-                                                    className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors"
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="h-3.5 w-3.5 text-blue-600" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(s._id)}
-                                                    className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <p className="font-devanagari text-sm text-gray-600 dark:text-gray-300 line-clamp-3 bg-amber-50/40 dark:bg-amber-900/10 rounded-xl p-3 mb-3 leading-relaxed">
-                                            {s.sanskrit?.slice(0, 180) || 'No Sanskrit text added'}
-                                        </p>
-                                        
-                                        <div className="flex flex-wrap items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700 gap-2">
-                                            <span className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5" /> Order: #{s.order || 0}</span>
-                                            <div className="flex flex-wrap gap-2">
-                                                {s.kannada && <span className="text-purple-600 font-medium">✓ ಕನ್ನಡ</span>}
-                                                {s.marathi && <span className="text-green-600 font-medium">✓ मराठी</span>}
-                                                {s.tamil && <span className="text-red-600 font-medium">✓ தமிழ்</span>}
-                                                {s.hindi && <span className="text-blue-600 font-medium">✓ हिन्दी</span>}
-                                                {s.english && <span className="text-gray-600 font-medium">✓ EN</span>}
-                                            </div>
-                                            <span className="flex items-center gap-1">👁 {(s.views || 0).toLocaleString()}</span>
-                                        </div>
-                                        
-                                        {s.isFeatured && (
+
+                                            {/* Explore action */}
                                             <div className="mt-3 flex justify-end">
-                                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
-                                                    <Star className="h-3 w-3" /> Featured
+                                                <span className="text-amber-600 text-xs font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1">
+                                                    View <ArrowRight className="h-3.5 w-3.5" />
                                                 </span>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            );
+                        })}
                     </motion.div>
                 )}
 
@@ -359,6 +437,7 @@ const ManageShlokas = () => {
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                                    {/* ─── Form fields (unchanged) ─── */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
@@ -433,8 +512,8 @@ const ManageShlokas = () => {
                                                 <textarea required rows={4} value={formData.marathi} onChange={e => setFormData({ ...formData, marathi: e.target.value })} placeholder="Marathi translation..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-amber-500" />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">தமிழ் (Tamil) <span className="text-red-500">*</span></label>
-                                                <textarea required rows={4} value={formData.tamil} onChange={e => setFormData({ ...formData, tamil: e.target.value })} placeholder="Tamil translation..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-amber-500" />
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">తెలుగు (Telugu) <span className="text-red-500">*</span></label>
+                                                <textarea required rows={4} value={formData.tamil} onChange={e => setFormData({ ...formData, tamil: e.target.value })} placeholder="Telugu translation..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-amber-500" />
                                             </div>
                                         </div>
                                     </div>

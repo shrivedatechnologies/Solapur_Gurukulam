@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { z } from 'zod';
-import { Bell, Moon, Sun, Globe, Lock, Save, Eye, EyeOff, Monitor, Palette, Check, Sparkles } from 'lucide-react';
+import { Moon, Sun, Lock, Save, Eye, EyeOff, Monitor, Palette, Check, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
 import { setDarkMode, toggleDarkMode } from '../../store/themeSlice';
@@ -57,12 +57,6 @@ const Settings = () => {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [notifications, setNotifications] = useState({
-        emailNotifications: true,
-        pushNotifications: true,
-        mantraReminders: false,
-        weeklyDigest: true,
-    });
     const heroRef = useRef(null);
     const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
     const yParallax = useSpring(useTransform(scrollYProgress, [0, 1], [0, 80]), { stiffness: 100, damping: 30 });
@@ -111,6 +105,7 @@ const Settings = () => {
             </section>
 
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 space-y-6">
+                {/* Appearance Section */}
                 <SectionCard icon={Palette} title="Appearance" delay={0.1}>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
                         Choose how the dashboard looks to you. This preference is stored locally on your device.
@@ -156,48 +151,7 @@ const Settings = () => {
                     </div>
                 </SectionCard>
 
-                <SectionCard icon={Bell} title="Notifications" delay={0.2}>
-                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        <Toggle
-                            checked={notifications.emailNotifications}
-                            onChange={() => setNotifications(n => ({ ...n, emailNotifications: !n.emailNotifications }))}
-                            label="Email Notifications"
-                            description="Receive important updates and alerts via email"
-                        />
-                        <Toggle
-                            checked={notifications.pushNotifications}
-                            onChange={() => setNotifications(n => ({ ...n, pushNotifications: !n.pushNotifications }))}
-                            label="Push Notifications"
-                            description="Browser push notifications for real-time updates"
-                        />
-                        <Toggle
-                            checked={notifications.mantraReminders}
-                            onChange={() => setNotifications(n => ({ ...n, mantraReminders: !n.mantraReminders }))}
-                            label="Daily Mantra Reminders"
-                            description="Get a daily reminder to practice your mantra"
-                        />
-                        <Toggle
-                            checked={notifications.weeklyDigest}
-                            onChange={() => setNotifications(n => ({ ...n, weeklyDigest: !n.weeklyDigest }))}
-                            label="Weekly Digest"
-                            description="Summary of popular mantras added this week"
-                        />
-                    </div>
-                </SectionCard>
-
-                <SectionCard icon={Globe} title="Language & Region" delay={0.3}>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Display Language
-                        </label>
-                        <select className="w-full max-w-xs px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none transition">
-                            <option value="en">English</option>
-                            <option value="hi">हिंदी</option>
-                            <option value="sa">संस्कृतम्</option>
-                        </select>
-                    </div>
-                </SectionCard>
-
+                {/* Change Password Section */}
                 <SectionCard icon={Lock} title="Change Password" delay={0.4}>
                     <form onSubmit={handleSubmit(onSubmitPassword)} className="space-y-5">
                         <div>

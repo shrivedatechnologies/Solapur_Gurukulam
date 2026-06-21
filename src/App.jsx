@@ -1,12 +1,12 @@
-import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
+import { Provider } from "react-redux";
 
-import AppRoutes from './routes/AppRoutes';
+import { PersistGate } from "redux-persist/integration/react";
+import { fetchFavouriteIds } from "./store/favouriteSlice";
+
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
-  return (
-    <AppRoutes />
-  );
+  return <AppRoutes />;
 }
 
 export default App;

@@ -1,3 +1,4 @@
+// src/pages/dashboard/AdminDashboard.jsx
 import { useRef, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
@@ -40,7 +41,7 @@ import {
   Cell,
 } from "recharts";
 
-// ─── Mock data (only used when API fails) ───
+// ─── Mock data (fallback) ───
 const MOCK_USER_GROWTH = [
   { month: "Jan", users: 120 },
   { month: "Feb", users: 150 },
@@ -62,15 +63,34 @@ const MOCK_RECENT_ACTIVITY = [
   { content: "Shloka: Vishnu Sahasranama", type: "read", views: 21 },
 ];
 
-const DashboardHome = () => {
+// ─── Helper to extract stats ───
+const extractStats = (response) => {
+  if (!response) return { totalUsers: 0, totalCategories: 0, totalMantras: 0, totalShlokas: 0 };
+  if (response.totalUsers !== undefined) {
+    return {
+      totalUsers: response.totalUsers ?? 0,
+      totalCategories: response.totalCategories ?? 0,
+      totalMantras: response.totalMantras ?? 0,
+      totalShlokas: response.totalShlokas ?? 0,
+    };
+  }
+  if (response.data && typeof response.data === "object") {
+    const d = response.data;
+    return {
+      totalUsers: d.totalUsers ?? 0,
+      totalCategories: d.totalCategories ?? 0,
+      totalMantras: d.totalMantras ?? 0,
+      totalShlokas: d.totalShlokas ?? 0,
+    };
+  }
+  return { totalUsers: 0, totalCategories: 0, totalMantras: 0, totalShlokas: 0 };
+};
+
+const AdminDashboard = () => {
   const dispatch = useDispatch();
-  const {
-    stats,
-    topMantras,
-    topShlokas,
-    userAnalytics,
-    readAnalytics,
-  } = useSelector((state) => state.dashboard);
+  const { stats, topMantras, topShlokas, userAnalytics, readAnalytics } = useSelector(
+    (state) => state.dashboard
+  );
   const { user } = useSelector((state) => state.auth);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -88,20 +108,13 @@ const DashboardHome = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // ─── Fetch Stats (same pattern as Analytics) ───
+  // ─── Fetch Stats ───
   const { isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
       try {
         const response = await dashboardApi.getStats();
-        // The api already returns the data (since interceptor returns response.data)
-        // But we ensure it's an object with the expected fields
-        const safeStats = {
-          totalUsers: response?.totalUsers ?? 0,
-          totalCategories: response?.totalCategories ?? 0,
-          totalMantras: response?.totalMantras ?? 0,
-          totalShlokas: response?.totalShlokas ?? 0,
-        };
+        const safeStats = extractStats(response);
         dispatch(setStats(safeStats));
         return safeStats;
       } catch (error) {
@@ -113,15 +126,17 @@ const DashboardHome = () => {
     },
   });
 
-  // ─── Fetch Top Mantras ───
   useQuery({
     queryKey: ["top-mantras"],
     queryFn: async () => {
       try {
         const data = await dashboardApi.getTopMantras();
-        const mantrasArray = Array.isArray(data) ? data : [];
-        dispatch(setTopMantras(mantrasArray));
-        return mantrasArray;
+        let mantras = [];
+        if (Array.isArray(data)) mantras = data;
+        else if (data?.data && Array.isArray(data.data)) mantras = data.data;
+        else if (data?.success && data?.data && Array.isArray(data.data)) mantras = data.data;
+        dispatch(setTopMantras(mantras));
+        return mantras;
       } catch (error) {
         console.error("Top mantras API error:", error);
         dispatch(setTopMantras([]));
@@ -130,7 +145,6 @@ const DashboardHome = () => {
     },
   });
 
-  // ─── Fetch Analytics ───
   useQuery({
     queryKey: ["dashboard-analytics"],
     queryFn: async () => {
@@ -139,16 +153,17 @@ const DashboardHome = () => {
           dashboardApi.getUserAnalytics(),
           dashboardApi.getReadAnalytics(),
         ]);
-        const safeUser = {
-          growth: Array.isArray(userData?.growth) ? userData.growth : [],
-        };
-        const safeRead = {
-          views: Array.isArray(readData?.views) ? readData.views : [],
-          recent: Array.isArray(readData?.recent) ? readData.recent : [],
-        };
-        dispatch(setUserAnalytics(safeUser));
-        dispatch(setReadAnalytics(safeRead));
-        return { userData: safeUser, readData: safeRead };
+        const growth = userData?.growth || userData?.data?.growth || [];
+        const views = readData?.views || readData?.data?.views || [];
+        const recent = readData?.recent || readData?.data?.recent || [];
+        dispatch(setUserAnalytics({ growth: Array.isArray(growth) ? growth : [] }));
+        dispatch(
+          setReadAnalytics({
+            views: Array.isArray(views) ? views : [],
+            recent: Array.isArray(recent) ? recent : [],
+          })
+        );
+        return { userData, readData };
       } catch (error) {
         console.error("Analytics API error:", error);
         dispatch(setUserAnalytics({ growth: [] }));
@@ -158,27 +173,19 @@ const DashboardHome = () => {
     },
   });
 
-  // ─── Safe data with fallback to mock if empty ───
+  // ─── Safe data with fallback ───
   const safeTopMantras = Array.isArray(topMantras) ? topMantras : [];
   const safeTopShlokas = Array.isArray(topShlokas) ? topShlokas : [];
-  const safeUserAnalytics = Array.isArray(userAnalytics?.growth)
-    ? userAnalytics.growth
-    : [];
-  const safeReadAnalytics = Array.isArray(readAnalytics?.views)
-    ? readAnalytics.views
-    : [];
+  const safeUserAnalytics = Array.isArray(userAnalytics?.growth) ? userAnalytics.growth : [];
+  const safeReadAnalytics = Array.isArray(readAnalytics?.views) ? readAnalytics.views : [];
   const safeRecentActivity = Array.isArray(readAnalytics?.recent)
     ? readAnalytics.recent
     : MOCK_RECENT_ACTIVITY;
 
-  const displayUserGrowth =
-    safeUserAnalytics.length > 0 ? safeUserAnalytics : MOCK_USER_GROWTH;
-  const displayReadAnalytics =
-    safeReadAnalytics.length > 0 ? safeReadAnalytics : MOCK_READ_ANALYTICS;
-  const displayRecentActivity =
-    safeRecentActivity.length > 0 ? safeRecentActivity : MOCK_RECENT_ACTIVITY;
+  const displayUserGrowth = safeUserAnalytics.length > 0 ? safeUserAnalytics : MOCK_USER_GROWTH;
+  const displayReadAnalytics = safeReadAnalytics.length > 0 ? safeReadAnalytics : MOCK_READ_ANALYTICS;
+  const displayRecentActivity = safeRecentActivity.length > 0 ? safeRecentActivity : MOCK_RECENT_ACTIVITY;
 
-  // ─── Stat Cards ───
   const statCards = [
     {
       title: "Total Users",
@@ -233,25 +240,18 @@ const DashboardHome = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08, delayChildren: 0.2 },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.2 } },
   };
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
   };
 
   if (statsLoading) return <Loader fullScreen />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 overflow-x-hidden pb-10">
-      {/* ─── HERO ─── */}
+      {/* Hero */}
       <section
         ref={heroRef}
         className="relative overflow-hidden pt-8 pb-12 md:pt-12 md:pb-16"
@@ -260,10 +260,7 @@ const DashboardHome = () => {
         <div className="absolute top-20 right-0 w-72 h-72 bg-amber-300/20 dark:bg-amber-500/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-10 left-10 w-80 h-80 bg-indigo-300/20 dark:bg-indigo-500/10 rounded-full blur-3xl animate-pulse" />
 
-        <motion.div
-          style={{ y: yParallax }}
-          className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-        >
+        <motion.div style={{ y: yParallax }} className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -272,9 +269,7 @@ const DashboardHome = () => {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-amber-200/40 mb-4">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                  Dashboard
-                </span>
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Dashboard</span>
               </div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                 Welcome back, {user?.name?.split(" ")[0] || "User"}! 👋
@@ -295,9 +290,7 @@ const DashboardHome = () => {
                   <Compass className="h-5 w-5" />
                   <span className="font-semibold">Super Admin Access</span>
                 </div>
-                <p className="text-xs text-white/80 mt-1">
-                  Full control over all content
-                </p>
+                <p className="text-xs text-white/80 mt-1">Full control over all content</p>
               </motion.div>
             )}
             {user?.role === "admin" && (
@@ -311,9 +304,7 @@ const DashboardHome = () => {
                   <TrendingUp className="h-5 w-5" />
                   <span className="font-semibold">Admin Access</span>
                 </div>
-                <p className="text-xs text-white/80 mt-1">
-                  Manage mantras, shlokas & content
-                </p>
+                <p className="text-xs text-white/80 mt-1">Manage mantras, shlokas & content</p>
               </motion.div>
             )}
           </div>
@@ -331,7 +322,7 @@ const DashboardHome = () => {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ─── STAT CARDS ─── */}
+        {/* Stats Cards */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -341,24 +332,19 @@ const DashboardHome = () => {
           {statCards.map((card) => {
             const Icon = card.icon;
             return (
-              <motion.div
-                key={card.title}
-                variants={itemVariants}
-                whileHover={{ y: -4 }}
-                className="w-full"
-              >
+              <motion.div key={card.title} variants={itemVariants} whileHover={{ y: -4 }} className="w-full">
                 <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-md border border-gray-200/50 dark:border-gray-700 overflow-hidden group h-full">
                   <div
                     className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${card.color} rounded-full blur-2xl opacity-10 group-hover:opacity-20 transition`}
                   />
                   <div className="flex items-center justify-between mb-3">
-                    <div
-                      className={`p-2.5 rounded-xl ${card.bgLight} dark:bg-opacity-20`}
-                    >
+                    <div className={`p-2.5 rounded-xl ${card.bgLight} dark:bg-opacity-20`}>
                       <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${card.textLight}`} />
                     </div>
                     <span
-                      className={`flex items-center gap-0.5 text-sm font-medium ${card.trend === "up" ? "text-green-600" : "text-red-600"}`}
+                      className={`flex items-center gap-0.5 text-sm font-medium ${
+                        card.trend === "up" ? "text-green-600" : "text-red-600"
+                      }`}
                     >
                       {card.trend === "up" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -380,7 +366,7 @@ const DashboardHome = () => {
           })}
         </motion.div>
 
-        {/* ─── CHARTS ─── */}
+        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -408,13 +394,7 @@ const DashboardHome = () => {
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Line
-                      type="monotone"
-                      dataKey="users"
-                      stroke="#f59e0b"
-                      strokeWidth={2}
-                      dot={{ fill: "#f59e0b" }}
-                    />
+                    <Line type="monotone" dataKey="users" stroke="#f59e0b" strokeWidth={2} dot={{ fill: "#f59e0b" }} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
@@ -451,16 +431,8 @@ const DashboardHome = () => {
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar
-                      dataKey="mantras"
-                      fill="#f59e0b"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="shlokas"
-                      fill="#8b5cf6"
-                      radius={[4, 4, 0, 0]}
-                    />
+                    <Bar dataKey="mantras" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="shlokas" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -472,7 +444,7 @@ const DashboardHome = () => {
           </motion.div>
         </div>
 
-        {/* ─── PIE CHART & RECENT ACTIVITY ─── */}
+        {/* Pie & Recent */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -493,19 +465,14 @@ const DashboardHome = () => {
                       cy="50%"
                       labelLine={false}
                       label={({ name, percent }) =>
-                        percent > 0
-                          ? `${name}: ${(percent * 100).toFixed(0)}%`
-                          : ""
+                        percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ""
                       }
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
                     >
                       {filteredPieData.map((entry, idx) => (
-                        <Cell
-                          key={`cell-${idx}`}
-                          fill={COLORS[idx % COLORS.length]}
-                        />
+                        <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -550,9 +517,7 @@ const DashboardHome = () => {
                     <p className="font-medium text-gray-800 dark:text-white text-sm sm:text-base">
                       {activity?.content || "Unknown"}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {activity?.type || "view"} activity
-                    </p>
+                    <p className="text-xs text-gray-500">{activity?.type || "view"} activity</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-sm text-gray-500">
                     <Eye className="h-4 w-4" />
@@ -561,15 +526,13 @@ const DashboardHome = () => {
                 </motion.div>
               ))}
               {displayRecentActivity.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No recent activity
-                </div>
+                <div className="text-center py-8 text-gray-400 text-sm">No recent activity</div>
               )}
             </div>
           </motion.div>
         </div>
 
-        {/* ─── TOP MANTRAS & SHLOKAS ─── */}
+        {/* Top Mantras & Shlokas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -593,7 +556,11 @@ const DashboardHome = () => {
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx < 3 ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white" : "bg-gray-200 text-gray-600"}`}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          idx < 3
+                            ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
                       >
                         {idx + 1}
                       </span>
@@ -601,9 +568,7 @@ const DashboardHome = () => {
                         <p className="font-medium text-gray-800 dark:text-white text-sm sm:text-base">
                           {mantra?.name || "Unknown"}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          {mantra?.totalShlokas || 0} shlokas
-                        </p>
+                        <p className="text-xs text-gray-500">{mantra?.totalShlokas || 0} shlokas</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 text-sm text-gray-500">
@@ -613,9 +578,7 @@ const DashboardHome = () => {
                   </motion.div>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No mantras data available
-                </div>
+                <div className="text-center py-8 text-gray-400 text-sm">No mantras data available</div>
               )}
             </div>
           </motion.div>
@@ -642,7 +605,11 @@ const DashboardHome = () => {
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx < 3 ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white" : "bg-gray-200 text-gray-600"}`}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          idx < 3
+                            ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
                       >
                         {idx + 1}
                       </span>
@@ -662,16 +629,26 @@ const DashboardHome = () => {
                   </motion.div>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No shlokas data available
-                </div>
+                <div className="text-center py-8 text-gray-400 text-sm">No shlokas data available</div>
               )}
             </div>
           </motion.div>
+        </div>
+
+        {/* Debug Info – can be removed later */}
+        <div className="mt-10 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-300 dark:border-gray-600">
+          <details>
+            <summary className="cursor-pointer font-medium text-gray-700 dark:text-gray-300">
+              🔍 Debug: Raw Stats Data (click to expand)
+            </summary>
+            <pre className="mt-2 p-3 bg-white dark:bg-gray-900 rounded-lg overflow-auto text-xs text-gray-800 dark:text-gray-200">
+              {JSON.stringify(stats, null, 2)}
+            </pre>
+          </details>
         </div>
       </div>
     </div>
   );
 };
 
-export default DashboardHome;
+export default AdminDashboard;

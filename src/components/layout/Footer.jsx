@@ -51,7 +51,7 @@ const Footer = () => {
                         </div>
                     </div>
 
-                    {/* Quick Links – all normal Links (no login condition) */}
+                    {/* Quick Links - removed Privacy Policy & Terms of Service */}
                     <div>
                         <h3 className="text-lg font-semibold mb-4 text-amber-400">Quick Links</h3>
                         <ul className="space-y-2">
@@ -65,56 +65,53 @@ const Footer = () => {
                                     Categories
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="/privacy" className="text-gray-400 hover:text-amber-400 transition-colors duration-200">
-                                    Privacy Policy
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/terms" className="text-gray-400 hover:text-amber-400 transition-colors duration-200">
-                                    Terms of Service
-                                </Link>
-                            </li>
                         </ul>
                     </div>
 
-                    {/* Support – all normal Links */}
+                    {/* Quick Support - removed FAQ & Feedback, kept Contact Us */}
                     <div>
-                        <h3 className="text-lg font-semibold mb-4 text-amber-400">Support</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-amber-400">Quick Support</h3>
                         <ul className="space-y-2">
                             <li>
                                 <Link to="/contact" className="text-gray-400 hover:text-amber-400 transition-colors duration-200">
                                     Contact Us
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="/faq" className="text-gray-400 hover:text-amber-400 transition-colors duration-200">
-                                    FAQ
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/feedback" className="text-gray-400 hover:text-amber-400 transition-colors duration-200">
-                                    Feedback
-                                </Link>
-                            </li>
                         </ul>
                     </div>
 
-                    {/* Contact Info – static */}
+                    {/* Contact Info – updated with founder details and clickable links */}
                     <div>
                         <h3 className="text-lg font-semibold mb-4 text-amber-400">Contact Info</h3>
                         <ul className="space-y-3">
                             <li className="flex items-start space-x-3">
                                 <FiMapPin className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                                <span className="text-gray-400">Varanasi, Uttar Pradesh, India</span>
+                                <a
+                                    href="https://www.google.com/maps/search/?api=1&query=Pothangal+Kotagiri+Mandal+Nizamabad+District+Telangana"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-400 hover:text-amber-400 transition-colors duration-200"
+                                >
+                                    Pothangal, Kotagiri Mandal, Nizamabad District, Telangana
+                                </a>
                             </li>
                             <li className="flex items-center space-x-3">
                                 <FiPhone className="h-5 w-5 text-amber-400 flex-shrink-0" />
-                                <span className="text-gray-400">+91 1234567890</span>
+                                <a
+                                    href="tel:+918978262883"
+                                    className="text-gray-400 hover:text-amber-400 transition-colors duration-200"
+                                >
+                                    +91 8978262883
+                                </a>
                             </li>
                             <li className="flex items-center space-x-3">
                                 <FiMail className="h-5 w-5 text-amber-400 flex-shrink-0" />
-                                <span className="text-gray-400">contact@solapurgurukulam.com</span>
+                                <a
+                                    href="mailto:contact@solapurgurukulam.com"
+                                    className="text-gray-400 hover:text-amber-400 transition-colors duration-200"
+                                >
+                                    contact@solapurgurukulam.com
+                                </a>
                             </li>
                         </ul>
                     </div>

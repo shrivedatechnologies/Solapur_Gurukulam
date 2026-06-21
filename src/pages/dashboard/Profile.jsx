@@ -4,12 +4,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { z } from 'zod';
-import { User, Mail, Phone, Camera, Save, Sparkles, Calendar } from 'lucide-react';
+import { User, Mail, Phone, Save, Sparkles, Calendar } from 'lucide-react'; // Camera removed
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
 import { setUser } from '../../store/authSlice';
 import Button from '../../components/common/Button';
-import Card from '../../components/common/Card';
 import Input from '../../components/common/Input';
 
 const profileSchema = z.object({
@@ -22,7 +21,6 @@ const Profile = () => {
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
     const [isLoading, setIsLoading] = useState(false);
-    const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
     const heroRef = useRef(null);
     const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
     const yParallax = useSpring(useTransform(scrollYProgress, [0, 1], [0, 80]), { stiffness: 100, damping: 30 });
@@ -50,17 +48,6 @@ const Profile = () => {
             toast.error(error.response?.data?.message || 'Failed to update profile');
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const handleAvatarChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatarPreview(reader.result);
-            };
-            reader.readAsDataURL(file);
         }
     };
 
@@ -93,18 +80,14 @@ const Profile = () => {
                         transition={{ duration: 0.5 }}
                     >
                         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-md border border-amber-200/40 p-6 text-center">
-                            <div className="relative inline-block group">
+                            <div className="relative inline-block">
                                 <div className="w-32 h-32 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto overflow-hidden ring-4 ring-amber-200/50 dark:ring-amber-900/30">
-                                    {avatarPreview ? (
-                                        <img src={avatarPreview} alt={user?.name} className="w-full h-full object-cover" />
+                                    {user?.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-5xl text-white font-bold">{user?.name?.charAt(0).toUpperCase()}</span>
                                     )}
                                 </div>
-                                <label className="absolute bottom-0 right-0 p-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full cursor-pointer hover:scale-110 transition-transform shadow-lg">
-                                    <Camera className="h-4 w-4 text-white" />
-                                    <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                                </label>
                             </div>
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-5">{user?.name}</h2>
                             <span className="inline-block mt-1 px-3 py-0.5 text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full capitalize">

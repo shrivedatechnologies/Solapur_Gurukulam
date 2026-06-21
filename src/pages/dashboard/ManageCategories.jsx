@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Plus, Edit, Trash2, Search, X, Image, Tag, FileText, Hash, Globe, Sparkles } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Image, Tag, FileText, Hash, Globe, Sparkles, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Loader from '../../components/common/Loader';
 
@@ -51,6 +51,14 @@ const categoryApi = {
 };
 
 const DEITY_ICONS = ['🕉️', '🔱', '🪔', '🌺', '☸️', '🐚', '🌸', '🙏', '🏵️', '⚜️'];
+
+// ─── Helper: build absolute image URL ───
+const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+};
 
 const ManageCategories = () => {
     const queryClient = useQueryClient();
@@ -204,64 +212,87 @@ const ManageCategories = () => {
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        className="grid grid-cols-1 md:grid-cols-2 gap-6"
                     >
-                        {filtered.map((cat, idx) => (
-                            <motion.div key={cat._id} variants={cardVariants} whileHover={{ y: -6 }}>
-                                <div className="group relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-md border border-amber-200/40 hover:shadow-xl transition-all duration-300">
-                                    <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 to-amber-600" />
-
-                                    {cat.image ? (
-                                        <div className="relative h-40 overflow-hidden">
-                                            <img
-                                                src={cat.image}
-                                                alt={cat.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                                            />
-                                            <div className="hidden h-40 items-center justify-center bg-gradient-to-br from-amber-100 to-amber-200">
-                                                <span className="text-5xl">{DEITY_ICONS[idx % DEITY_ICONS.length]}</span>
+                        {filtered.map((cat, idx) => {
+                            const icon = DEITY_ICONS[idx % DEITY_ICONS.length];
+                            const imageUrl = getImageUrl(cat.image);
+                            return (
+                                <motion.div
+                                    key={cat._id}
+                                    variants={cardVariants}
+                                    whileHover={{ scale: 1.02, transition: { type: "spring", stiffness: 300 } }}
+                                    className="group cursor-default"
+                                >
+                                    <div className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl border border-amber-200/40 dark:border-gray-700/50 shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                                        {/* Gradient border glow on hover */}
+                                        <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-r from-amber-400/0 via-amber-400/0 to-amber-400/0 group-hover:from-amber-400/50 group-hover:via-amber-400/30 group-hover:to-amber-400/50 transition-all duration-700" />
+                                        
+                                        <div className="relative p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                            {/* Icon / Image section with fallback */}
+                                            <div className="flex-shrink-0 w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-800/40 flex items-center justify-center text-3xl shadow-inner group-hover:scale-110 transition-transform duration-300">
+                                                {imageUrl ? (
+                                                    <img
+                                                        src={imageUrl}
+                                                        alt={cat.name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            const parent = e.target.parentElement;
+                                                            const iconSpan = document.createElement('span');
+                                                            iconSpan.className = 'text-3xl';
+                                                            iconSpan.textContent = icon;
+                                                            parent.appendChild(iconSpan);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <span className="text-3xl">{icon}</span>
+                                                )}
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="h-40 flex items-center justify-center bg-gradient-to-br from-amber-100 to-amber-200">
-                                            <span className="text-5xl">{DEITY_ICONS[idx % DEITY_ICONS.length]}</span>
-                                        </div>
-                                    )}
-
-                                    <div className="p-4">
-                                        <div className="flex items-start justify-between gap-2 mb-2">
-                                            <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight">{cat.name}</h3>
-                                            <div className="flex gap-1.5 flex-shrink-0">
+                                            {/* Details */}
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-xl font-bold text-gray-800 dark:text-white group-hover:text-amber-600 transition-colors">
+                                                    {cat.name}
+                                                </h3>
+                                                <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 leading-relaxed">
+                                                    {cat.description || 'Explore sacred mantras, shlokas and shotrams from this tradition.'}
+                                                </p>
+                                                {/* Decorative progress bar */}
+                                                <div className="mt-2 w-full h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full transition-all duration-700 group-hover:w-full w-1/3"
+                                                        style={{ width: `${Math.min(100, (cat.mantraCount || 0) * 5)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {/* Action buttons */}
+                                            <div className="flex-shrink-0 flex gap-1.5">
                                                 <button
                                                     onClick={() => openForm(cat)}
-                                                    className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors"
+                                                    className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors"
                                                     title="Edit"
                                                 >
-                                                    <Edit className="h-3.5 w-3.5 text-blue-600" />
+                                                    <Edit className="h-4 w-4 text-blue-600" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(cat._id)}
-                                                    className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors"
+                                                    className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 transition-colors"
                                                     title="Delete"
                                                 >
-                                                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                                    <Trash2 className="h-4 w-4 text-red-500" />
                                                 </button>
                                             </div>
                                         </div>
-                                        <p className="text-gray-500 dark:text-gray-400 text-xs line-clamp-2 leading-relaxed">
-                                            {cat.description || 'No description added'}
-                                        </p>
-                                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                                            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-full">
-                                                <Hash className="h-3 w-3" />{cat.mantraCount || 0} mantras
+                                        {/* Count badge */}
+                                        <div className="absolute top-2 right-2">
+                                            <span className="inline-block text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-full">
+                                                {cat.mantraCount || 0} mantras
                                             </span>
-                                            <span className="text-xs text-gray-400 font-mono truncate max-w-[100px]">{cat.slug}</span>
                                         </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            );
+                        })}
                     </motion.div>
                 )}
 

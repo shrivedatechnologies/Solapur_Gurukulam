@@ -10,7 +10,7 @@ import MainLayout from '../layouts/MainLayout';
 import DashboardLayout from '../layouts/DashboardLayout';
 import AuthLayout from '../layouts/AuthLayout';
 
-// Lazy pages
+// Public pages
 const Home = lazy(() => import('../pages/public/Home'));
 const Login = lazy(() => import('../pages/auth/Login'));
 const Register = lazy(() => import('../pages/auth/Register'));
@@ -27,6 +27,7 @@ const ShlokaDetails = lazy(() => import('../pages/public/ShlokaDetails'));
 const ShotramDetails = lazy(() => import('../pages/public/ShotramDetails'));
 const Search = lazy(() => import('../pages/public/Search'));
 const NotFound = lazy(() => import('../pages/public/NotFound'));
+const ContactUs = lazy(() => import('../pages/public/ContactUs'));
 
 // Dashboard pages
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
@@ -34,13 +35,15 @@ const ManageCategories = lazy(() => import('../pages/dashboard/ManageCategories'
 const ManageMantras = lazy(() => import('../pages/dashboard/ManageMantras'));
 const ManageShlokas = lazy(() => import('../pages/dashboard/ManageShlokas'));
 const ManageShotrams = lazy(() => import('../pages/dashboard/ManageShotrams'));
-const ManageHomepage = lazy(() => import('../pages/dashboard/ManageHomepage'));
+// ManageHomepage removed – file missing
 const ManageAdmins = lazy(() => import('../pages/dashboard/ManageAdmins'));
 const Analytics = lazy(() => import('../pages/dashboard/Analytics'));
 const Profile = lazy(() => import('../pages/dashboard/Profile'));
 const Settings = lazy(() => import('../pages/dashboard/Settings'));
+// ✅ New: Favourites page
+const Favourites = lazy(() => import('../pages/dashboard/Favourites'));
 
-// ✅ Protected Route — role-based access guard
+// Protected Route — role-based access guard
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const { isAuthenticated, user, isLoading } = useSelector((state) => state.auth);
 
@@ -63,8 +66,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return children;
 };
 
-// ✅ Auth Route — already logged-in users ko redirect karo
-// Admin/Super Admin → /dashboard, User → /
+// Auth Route — already logged-in users ko redirect
 const AuthRoute = ({ children }) => {
     const { isAuthenticated, user } = useSelector((state) => state.auth);
 
@@ -113,9 +115,10 @@ const AppRoutes = () => {
                                 <Route path="/shlokas" element={<Shlokas />} />
                                 <Route path="/shotrams" element={<Shotrams />} />
                                 <Route path="/search" element={<Search />} />
+                                <Route path="/contact" element={<ContactUs />} />
                             </Route>
 
-                            {/* Auth Routes — logged-in users ko redirect karo */}
+                            {/* Auth Routes */}
                             <Route element={<AuthLayout />}>
                                 <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
                                 <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
@@ -133,6 +136,7 @@ const AppRoutes = () => {
                                 <Route index element={<DashboardHome />} />
                                 <Route path="profile" element={<Profile />} />
                                 <Route path="settings" element={<Settings />} />
+                                <Route path="favourites" element={<Favourites />} />   {/* ✅ New route */}
                             </Route>
 
                             {/* Dashboard - Admin & Super Admin */}
@@ -144,7 +148,7 @@ const AppRoutes = () => {
                                 <Route path="mantras" element={<ManageMantras />} />
                                 <Route path="shlokas" element={<ManageShlokas />} />
                                 <Route path="shotrams" element={<ManageShotrams />} />
-                                <Route path="homepage" element={<ManageHomepage />} />
+                                {/* ManageHomepage route removed */}
                                 <Route path="analytics" element={<Analytics />} />
                             </Route>
 

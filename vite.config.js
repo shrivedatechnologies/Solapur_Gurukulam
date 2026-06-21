@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
     port: 3000,
     proxy: {
       '/api': {
@@ -12,17 +13,7 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'redux-vendor': ['@reduxjs/toolkit', 'react-redux', 'redux-persist'],
-          'ui-vendor': ['framer-motion', 'lucide-react', 'react-hot-toast'],
-          'form-vendor': ['react-hook-form', 'zod', '@hookform/resolvers'],
-          'chart-vendor': ['recharts'],
-        },
-      },
-    },
-  },
+  build: {},
 })
+
+// 9951652990
